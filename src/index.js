@@ -14,6 +14,15 @@ const datos = {
   agregar: (nombre, valor) => {
     datos[nombre] = valor;
     localStorage.setItem(nombre, JSON.stringify(valor));
+  },
+  recibos:{
+    agregar:({codigo, conceptos}) => {
+      console
+      datos.agregar('recibos', datos.recibos.concat({codigo, conceptos}))
+    }
+  },
+  nuevaTabla: (nombre) => {
+    datos.agregar(nombre, valor);
   }
 };
 const uid = (() => {
@@ -54,7 +63,16 @@ datos.agregar("conceptos", [
   {nombre:"Donaciones", precio: 100}
 ]);
 datos.agregar("tamaños", [
-  {medidas:"15 x 20", precio:10}, {medidas:"20 x 30", precio:20}, {medidas:"taza", precio:30}, {sdfmedidas:"llavero", precio:40}
+  {medidas:"15 x 20", precio:10}, 
+  {medidas:"20 x 30", precio:20}, 
+  {medidas:"taza", precio:30}, 
+  {medidas:"llavero", precio:40}
+]);
+datos.agregar("alumnos", [
+  {nombre:"Bianca Paulina Mandaradoni Tobar", codigo: "vm18", hermanos: ["am14"]},
+  {nombre:"Giulia Paulina Mandaradoni Tobar", codigo: "am12", hermanos: ["vm18"]},
+  {nombre:"Pepita Pistoletas", codigo: "ct23"},
+  {nombre:"Pepita Menganetas", codigo: "ct23"}
 ]);
  
 //contextos
@@ -64,7 +82,7 @@ class Gcc extends React.Component {
   constructor(props) { 
     super(props);
     this.state = {
-      homeBoxes: datos.homeBoxes,
+      nombre: {texto:"", codigo:""},
       items: [{concepto: "Cuota Social", mes: "Mar", precio: datos.conceptos.filter(c=>c.nombre=="Cuota Social")[0].precio}]
     };
   }
@@ -74,20 +92,25 @@ class Gcc extends React.Component {
       <Gc.Provider
         value={{
           state: this.state,
+          cobrar: () => {
+            console.log(this.state);
+          },
           nuevoItem: () => this.setState({items:this.state.items.concat({
             concepto: "Cuota Social", 
             mes: "Mar", 
             precio: datos.conceptos.filter(c=>c.nombre=="Cuota Social")[0].precio
           })}),
           quitarItem: (numero) => {
-            
-                console.log("lala", numero);
             this.setState({
               items:this.state.items.filter((item, index)=>{
                 return index != numero
+              })
             })
-           })},
+          },
           changers: {
+            nombre: (codigo, texto) => {
+              this.setState({nombre:{codigo, texto}});
+            },
             concepto: (numero, concepto) => {
               this.setState({
                 items:this.state.items.map((item, index) =>
@@ -106,11 +129,6 @@ class Gcc extends React.Component {
               });
             },
             tamaño: (numero, tamaño) => {
-              console.log(this.state.items.map((item, index) =>
-                  numero == index 
-                    ? {...item, tamaño, precio: datos.tamaños.filter(t=>t.medidas==tamaño)[0].precio} 
-                    : item
-                ));
               this.setState({
                 items:this.state.items.map((item, index) =>
                   numero == index 
@@ -178,6 +196,11 @@ const Campo = ({ css, nombre }) => {
     </div>
   );
 };
+const Autocomplete = ({css, nombre}) => {
+  return (
+    <Campo css nombre />
+  );
+}
 const DropDown = ({ color, nombre, value, numero, changer, opciones }) => {
   return (
     <Gc.Consumer>
@@ -193,12 +216,9 @@ const DropDown = ({ color, nombre, value, numero, changer, opciones }) => {
   );
 };
 const Concepto = ({numero, changers, item, quitarItem}) => {
-  console.log(numero);
-  return (
-    <div className="flex flex-row pt3">
-      <button onClick={()=>quitarItem(numero)} className="br-pill b f4 gold w-10 bg-white b--white shadow-3">
-                -
-              </button>
+    return (
+    <div className="flex flex-row items-center pt3">
+      <button onClick={()=>quitarItem(numero)} className="br-pill b f4 gold w2 grow h2 mr3 bg-white b--white shadow-3">-</button>
       <DropDown color="gold" nombre="Concepto" numero={numero} value={item.concepto} changer={changers.concepto} opciones={datos.conceptos.map(c=>c.nombre)} />
       {item.concepto=='Cuota Social'?<DropDown color="gold" nombre="Mes" numero={numero} value={item.mes} changer={changers.mes} opciones={datos.meses} />:''}
       {item.concepto=='Fotos'?<Campo css="gold w-50" nombre="Acto" numero={numero} changer={changers.acto} />:''}
@@ -245,22 +265,20 @@ const NuevoRecibo = props => {
           return (
           <Fragment>
             <div className="w-100 pb1 bb b--white-50  inline-flex items-center justify-between">
-              <div className="ttu f6 fw2">Recibo</div>
-              <div className="ttu f6 fw2">{fecha}</div>
-              <div className="ttu f6 fw2">nro 0000 - 0000</div>
+              <div className="ttu f6 fw9">Recibo</div>
+              <div className="ttu f6 fw9">{fecha}</div>
+              <div className="ttu f6 fw9">nro 0000 - 0007</div>
             </div>
             <div className="flex flex-column pt3">
-              <Campo color="gold" nombre="Nombre" />
+              <Autocomplete css="w-30" nombre="Nombre" changers={context.changers.nombre} />
               {context.state.items.map((c, i)=> <Concepto item={c} numero={i} quitarItem={context.quitarItem} changers={context.changers} key={uid()} />)}
-              <button onClick={context.nuevoItem} className="br-pill b f4 gold w-10 bg-white b--white shadow-3">
-                +
-              </button>
+              <button onClick={context.nuevoItem} className="br-pill grow self-center b w4 f4 gold bg-white b--white shadow-3">+</button>
             </div>
             <div className="pt3 f2 f2-m fw5 w-100 inline-flex items-center justify-end">
               $ {context.state.items.reduce((a, c)=>a+=c.precio,0)}
             </div>
             <div className="pt2 w-100 inline-flex items-center justify-end">
-              <button className="br-pill b f4 gold w-20 bg-white b--white shadow-3">
+              <button onClick={context.cobrar}  className="br-pill grow b f4 gold w4 bg-white b--white shadow-3">
                 Cobrar
               </button>
             </div>
@@ -280,10 +298,7 @@ const Reportes = props => {
       </div>
       <div className="flex flex-column pt3">
         <label>Nombre</label>
-        <input
-          value="Bianca Mandaradoni"
-          className="green w-30 ttu mb3 f6 fw6 bb bw-3 bg"
-        />
+        <input className="green w-30 ttu mb3 f6 fw6 bb bw-3 bg w-50"/>
         <div className="flex flex-row pt3">
           <div className="flex flex-column pt3 pr4">
             <label>Concepto</label>
@@ -398,7 +413,7 @@ const Admin = props => {
   return (
     <Fragment>
       <div className="w-100 pb1 bb b--white-50  inline-flex items-center justify-between">
-        <div className="ttu f6 fw2">Recibo</div>
+        <div className="ttu f6 fw2">Resdfsdfcibo</div>
         <div className="ttu f6 fw2">26 / 01 / 2019</div>
         <div className="ttu f6 fw2">nro 0000 - 0000</div>
       </div>

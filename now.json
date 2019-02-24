@@ -1,4 +1,9 @@
 {
-  "name": "lacoop.app",
-  "version": 2
+  "name": "coopApp",
+  "version": 2,
+    "builds": [
+        { "src": "*.js", "use": "@now/node" },
+        { "src": "external/*", "use": "@now/static" },
+        { "src": "dist/*", "use": "@now/static" }
+    ]
 }
