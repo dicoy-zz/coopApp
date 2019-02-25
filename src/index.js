@@ -57,16 +57,12 @@ datos.agregar("conceptos", [
   {nombre:"Cuota Social", precio: 100},
   {nombre:"Materiales", precio: 600},
   {nombre:"Emergencias", precio: 200},
-  {nombre:"Fotos", precio: 10},
+  {nombre:"Foto 15 x 20", precio: 10},
+  {nombre:"Foto 20 x 30", precio: 20},
+  {nombre:"Foto llavero", precio: 30},
   {nombre:"Rifa", precio: 10},
   {nombre:"Extraordinaria", precio: 100},
   {nombre:"Donaciones", precio: 100}
-]);
-datos.agregar("tamaños", [
-  {medidas:"15 x 20", precio:10}, 
-  {medidas:"20 x 30", precio:20}, 
-  {medidas:"taza", precio:30}, 
-  {medidas:"llavero", precio:40}
 ]);
 datos.agregar("alumnos", [
   {nombre:"Bianca Paulina Mandaradoni Tobar", codigo: "vm18", hermanos: ["am14"]},
@@ -74,7 +70,13 @@ datos.agregar("alumnos", [
   {nombre:"Pepita Pistoletas", codigo: "ct23"},
   {nombre:"Pepita Menganetas", codigo: "ct23"}
 ]);
- 
+datos.agregar("salas", [
+  {color: "s", codigo: "Rosa"},
+  {color: "a", codigo: "Amarilla"},
+  {color: "c", codigo: "Celeste"},
+  {color: "j", codigo: "Roja"},
+  {color: "v", codigo: "Verde"}
+]);
 //contextos
 const Gc = React.createContext();
 class Gcc extends React.Component {
@@ -82,7 +84,8 @@ class Gcc extends React.Component {
   constructor(props) { 
     super(props);
     this.state = {
-      nombre: {texto:"", codigo:""},
+      alumno: {},
+      nombre: "",
       items: [{concepto: "Cuota Social", mes: "Mar", precio: datos.conceptos.filter(c=>c.nombre=="Cuota Social")[0].precio}]
     };
   }
@@ -108,14 +111,21 @@ class Gcc extends React.Component {
             })
           },
           changers: {
-            nombre: (codigo, texto) => {
-              this.setState({nombre:{codigo, texto}});
+            nombre: (nombre) => {
+              this.setState({nombre});
+            },
+            alumno: ({codigo, nombre}) => {
+              this.setState({alumno:{codigo, nombre}, nombre});
             },
             concepto: (numero, concepto) => {
               this.setState({
                 items:this.state.items.map((item, index) =>
                   numero == index 
-                    ? {...item, concepto, precio: datos.conceptos.filter(c=>c.nombre==concepto)[0].precio} 
+                    ? {
+                        ...item, 
+                        concepto, 
+                        precio: datos.conceptos.filter(c=>c.nombre==concepto)[0].precio
+                      }
                     : item
                 )
               });
@@ -188,43 +198,67 @@ const SmallBox = ({ color, children }) => {
     </article>
   );
 };
-const Campo = ({ css, nombre }) => {
+const Campo = ({ css, nombre, onChange, value }) => {
   return (
     <div className="flex flex-column pt1 pr3">
       <label>{nombre}</label>
-      <input className={`${css} mb3 f6 fw6 bb bw-3 bg`} />
+      <input onChange={onChange}  value={value} className={`${css} f6 fw6 bb bw-3 bg`} />
     </div>
   );
 };
-const Autocomplete = ({css, nombre}) => {
-  return (
-    <Campo css nombre />
-  );
-}
-const DropDown = ({ color, nombre, value, numero, changer, opciones }) => {
+const Autocomplete = ({css, nombre, changers, suggestions, value}) => {
   return (
     <Gc.Consumer>
       { context => (
-        <div className="flex flex-column pt1 pr3">
-          <label>{nombre}</label>
-          <select value={value} onChange={e=>changer(numero, e.target.value)} className={`${color} w-100 mb3 f6 fw6 bb`}>
-            {opciones.map(opcion => <option key={uid()}>{opcion}</option>)}
-          </select>
+        <div className="flex flex-column w-30">
+          <Campo css={css} nombre={nombre} value={value} onChange={e=>changers.nombre(e.target.value)}  />
+          <div className={`flex flex-column bg-white br3 ${css}`}>
+            {
+              context.state.nombre && suggestions
+                .filter(s => s.nombre.toLowerCase().indexOf(context.state.nombre.toLowerCase())!=-1 && context.state.nombre.toLowerCase() != s.nombre.toLowerCase())
+                .map(s => <button key={uid()} onClick={()=>changers.alumno(s)} className="br-pill b f4 white mh3 mv2 w-auto bg-gold b--gold shadow-3">{s.nombre}</button>)
+            }
+          </div>
         </div>
       )}
     </Gc.Consumer>
   );
+}
+const DropDown = ({ color, nombre, value, numero, changer, opciones }) => {
+  return (
+    <div className="flex flex-column pt1 pr3">
+      <label>{nombre}</label>
+      <select value={value} onChange={e=>changer(numero, e.target.value)} className={`${color} w-100 mb3 f6 fw6 bb`}>
+        {opciones.map(opcion => <option key={uid()}>{opcion}</option>)}
+      </select>
+    </div>
+  );
 };
 const Concepto = ({numero, changers, item, quitarItem}) => {
-    return (
+  return (
     <div className="flex flex-row items-center pt3">
       <button onClick={()=>quitarItem(numero)} className="br-pill b f4 gold w2 grow h2 mr3 bg-white b--white shadow-3">-</button>
-      <DropDown color="gold" nombre="Concepto" numero={numero} value={item.concepto} changer={changers.concepto} opciones={datos.conceptos.map(c=>c.nombre)} />
-      {item.concepto=='Cuota Social'?<DropDown color="gold" nombre="Mes" numero={numero} value={item.mes} changer={changers.mes} opciones={datos.meses} />:''}
-      {item.concepto=='Fotos'?<Campo css="gold w-50" nombre="Acto" numero={numero} changer={changers.acto} />:''}
-      {item.concepto=='Fotos'?<Campo css="gold w-50" nombre="Codigo" numero={numero} changer={changers.codigo} />:''}
-      {item.concepto=='Fotos'?<DropDown color="gold" nombre="Tamaño" numero={numero} value={item.tamaño} changer={changers.tamaño} opciones={datos.tamaños.map(t=>t.medidas)} />:''}
-      <div className="flex flex-column pt1 pr3">
+      <DropDown 
+        color="gold" nombre="Concepto" 
+        numero={numero} 
+        value={item.concepto} 
+        changer={changers.concepto} 
+        opciones={datos.conceptos.map(c=>c.nombre)} 
+      />
+      {
+        item.concepto == 'Cuota Social'
+        ? <DropDown color="gold" nombre="Mes" numero={numero} value={item.mes} changer={changers.mes} opciones={datos.meses} />
+        : ''
+      }
+      { 
+        item.concepto=='Fotos'
+        ? (<Fragment>
+            <Campo css="gold w-50" nombre="Acto" numero={numero} changer={changers.acto} />
+            <Campo css="gold w-50" nombre="Codigo" numero={numero} changer={changers.codigo} />
+          </Fragment>)
+        : ''
+      }
+      <div className="flex flex-column pr3">
         <label>Precio</label>
         <label>${datos.conceptos.filter(c=>c.nombre==item.concepto)[0].precio}</label>
       </div>
@@ -270,7 +304,14 @@ const NuevoRecibo = props => {
               <div className="ttu f6 fw9">nro 0000 - 0007</div>
             </div>
             <div className="flex flex-column pt3">
-              <Autocomplete css="w-30" nombre="Nombre" changers={context.changers.nombre} />
+              <div className="flex flex-row items-end">
+                <Autocomplete css="gold" nombre="Nombre" value={context.state.nombre} changers={context.changers} suggestions={datos.alumnos} />
+                {context.state.alumno.nombre && <label className="fw9 f4">
+                  {`${context.state.alumno.nombre
+                  } - Sala ${datos.salas.filter(s=>context.state.alumno.codigo[0]==s.codigo).color
+                  } - Turno ${context.state.alumno.codigo[1]=="m"?"Mañana":"Tarde"}`}
+                </label>}
+              </div>
               {context.state.items.map((c, i)=> <Concepto item={c} numero={i} quitarItem={context.quitarItem} changers={context.changers} key={uid()} />)}
               <button onClick={context.nuevoItem} className="br-pill grow self-center b w4 f4 gold bg-white b--white shadow-3">+</button>
             </div>
