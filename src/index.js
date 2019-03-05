@@ -1,13 +1,16 @@
-const {
+
+import React, {Fragment, useRef} from 'react';
+import {
   HashRouter,
   Switch,
   Route,
   IndexRoute,
   NavLink,
   hashHistory
-} = ReactRouterDOM;
-const { render } = ReactDOM;
-const Fragment = React.Fragment;
+} from 'react-router-dom';
+import { render } from 'react-dom';
+
+import ReactToPrint from 'react-to-print';
 
 //funciones de ayuda
 const datos = {
@@ -15,35 +18,14 @@ const datos = {
     datos[nombre] = valor;
     localStorage.setItem(nombre, JSON.stringify(valor));
   },
-  recibos:{
-    agregar:({codigo, conceptos}) => {
-      datos.agregar('recibos', datos.recibos.concat({codigo, conceptos}))
-    }
+  recibos: JSON.parse(localStorage.getItem("recibos")) || [],
+  agregarRecibo:({alumno, fecha, numero, items}) => {
+    datos.agregar('recibos', datos.recibos.concat({codigo:alumno.codigo, fecha, numero, items}))
   },
   nuevaTabla: (nombre) => {
     datos.agregar(nombre, valor);
   }
 };
-
-const copyStyles = (sourceDoc, targetDoc) => {
-  Array.from(sourceDoc.styleSheets).forEach(styleSheet => {
-    if (styleSheet.cssRules) { // true for inline styles
-      const newStyleEl = sourceDoc.createElement('style');
-
-      Array.from(styleSheet.cssRules).forEach(cssRule => {
-        newStyleEl.appendChild(sourceDoc.createTextNode(cssRule.cssText));
-      });
-
-      targetDoc.head.appendChild(newStyleEl);
-    } else if (styleSheet.href) { // true for stylesheets loaded from a URL
-      const newLinkEl = sourceDoc.createElement('link');
-
-      newLinkEl.rel = 'stylesheet';
-      newLinkEl.href = styleSheet.href;
-      targetDoc.head.appendChild(newLinkEl);
-    }
-  });
-}
 
 const uid = (() => {
   let i = 0;
@@ -361,6 +343,7 @@ datos.agregar("alumnos", [
   {nombre:'ALEX ALEGRE', codigo: 'vt27'},
   {nombre:'BENICIO MAS', codigo: 'vt28'},
 ]);
+
 //contextos
 const Gc = React.createContext();
 class Gcc extends React.Component {
@@ -375,13 +358,19 @@ class Gcc extends React.Component {
     };
   }
 
+
   render() {
     return (
       <Gc.Provider
         value={{
           state: this.state,
-          cobrar: () => {
-            console.log(this.state);
+          cobrar: (fecha, numero) => {
+            datos.agregarRecibo({...this.state, fecha, numero});
+            this.setState({
+              alumno: {},
+              nombre: "",
+              items: [{concepto: "Cuota Social", precio: datos.conceptos.filter(c=>c.nombre=="Cuota Social")[0].precio}]
+            });
           },
           nuevoItem: () => this.setState({items:this.state.items.concat({
             concepto: "Cuota Social", 
@@ -437,6 +426,27 @@ class Gcc extends React.Component {
       >
         {this.props.children}
       </Gc.Provider>
+    );
+  }
+}
+ 
+class Ticket extends React.Component {
+  render() {
+    return (
+      <Gcc>
+        <Gc.Consumer>
+          { context => {
+            const {nombre, alumno, items} = context.state;
+            return (
+              <div className="overflow-hidden h5">
+                <img src="logo.jpg" className="z-0 h5 absolute" />
+                <h1 className="relative z-1">Article Heading {nombre}</h1>
+                {items.map(c=> <p className="relative z-1" key={uid()}>{c.concepto}</p>)}
+              </div>
+            )
+          }}
+        </Gc.Consumer>
+      </Gcc>
     );
   }
 }
@@ -550,6 +560,33 @@ const Concepto = ({numero, changers, item, quitarItem}) => {
     </div>
   );
 };
+class Editable extends React.Component {
+  constructor(props){
+    super(props);
+    this.state={
+      edited:false,
+      edit:false,
+      valor: props.valor
+    }
+  }
+
+  render() {
+    return (this.state.edit
+      ? <input 
+        onKeyPress={e => e.key=="Enter" && this.setState({edit:false})} 
+        onBlur={() => this.setState({edit:false})} 
+        onChange={e=>this.setState({valor:e.target.value})} 
+        value={this.state.valor}
+      />
+      : <div 
+        onClick={()=>this.setState({edit:true})}
+        className={this.props.className}
+      >
+        {this.state.valor}
+      </div>
+    );
+  }
+}
 
 //secciones
 const Home = props => {
@@ -573,45 +610,59 @@ const Home = props => {
   );
 };
 const NuevoRecibo = props => {
+
+  const componentRef = useRef();
   const now = new Date();
   const fecha = `${("0" + now.getDate()).slice(-2)} / ${
     datos.meses[now.getMonth()]
   } / ${now.getYear() - 100} `;
+  const numero = `nro 0000 - ${("000"+datos.recibos.length).slice(-4)}`;
   return (
     <Gcc>
       <Gc.Consumer>
         { context => {
+          const {nombre, alumno, items} = context.state;
           return (
           <Fragment>
             <div className="w-100 pb1 bb b--white-50  inline-flex items-center justify-between">
               <div className="ttu f6 fw9">Recibo</div>
-              <div className="ttu f6 fw9">{fecha}</div>
-              <div className="ttu f6 fw9">nro 0000 - 0007</div>
+              <Editable valor={fecha} className="ttu f6 fw9" />
+              <Editable valor={numero} className="ttu f6 fw9" />
             </div>
             <div className="flex flex-column pt3">
               <div className="flex flex-row items-end">
-                <Autocomplete css="gold" nombre="Nombre" value={context.state.nombre} changers={context.changers} suggestions={datos.alumnos} />
-                {context.state.alumno.nombre && <label className="fw9 f4">
-                  {`${context.state.alumno.nombre
-                  } - Sala ${datos.salas.filter(s => context.state.alumno.codigo[0]==s.codigo)[0].color
-                  } - Turno ${context.state.alumno.codigo[1]=="m"?"Mañana":"Tarde"}`}
+                <Autocomplete css="gold" nombre="Nombre" value={nombre} changers={context.changers} suggestions={datos.alumnos} />
+                {alumno.nombre && <label className="fw9 f4">
+                  {`${alumno.nombre
+                  } - Sala ${datos.salas.filter(s => alumno.codigo[0]==s.codigo)[0].color
+                  } - Turno ${alumno.codigo[1]=="m"?"Mañana":"Tarde"}`}
                 </label>}
               </div>
-              {context.state.items.map((c, i)=> <Concepto item={c} numero={i} quitarItem={context.quitarItem} changers={context.changers} key={uid()} />)}
+              {items.map((c, i)=> <Concepto item={c} numero={i} quitarItem={context.quitarItem} changers={context.changers} key={uid()} />)}
               <button onClick={context.nuevoItem} className="br-pill grow self-center b w4 f4 gold bg-white b--white shadow-3">+</button>
             </div>
             <div className="pt3 f2 f2-m fw5 w-100 inline-flex items-center justify-end">
-              $ {context.state.items.reduce((a, c)=>a+=c.precio,0)}
+              $ {items.reduce((a, c)=>a+=c.precio,0)}
             </div>
             <div className="pt2 w-100 inline-flex items-center justify-end">
-              <button onClick={context.cobrar}  className="br-pill grow b f4 gold w4 bg-white b--white shadow-3">
-                Cobrar
-              </button>
-            </div>
-          </Fragment>
-        )}}
-      </Gc.Consumer>
-    </Gcc>
+            <button onClick={() => {context.cobrar(fecha, numero)}}  className="br-pill grow b f4 gold w4 bg-white b--white shadow-3">
+              Cobrar
+            </button>
+          </div>
+          <div className="overflow-hidden h5">
+            <img src="logo.jpg" className="z-0 h5 absolute" />
+            <h1 className="relative z-1">Article Heading {nombre}</h1>
+            {items.map(c=> <p className="relative z-1" key={uid()}>{c.concepto}</p>)}
+          </div>
+          <ReactToPrint
+            trigger={() => <button>Cobrar</button>}
+            content={() => componentRef.current}
+          />
+          <Ticket ref={componentRef} />
+        </Fragment>
+      )}}
+    </Gc.Consumer>
+  </Gcc>
   );
 };
 const Reportes = props => {

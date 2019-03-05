@@ -4,6 +4,7 @@
     "builds": [
         { "src": "*.js", "use": "@now/node" },
         { "src": "external/*", "use": "@now/static" },
-        { "src": "dist/*", "use": "@now/static" }
+        { "src": "dist/*", "use": "@now/static" },
+        { "src": "favicon.ico", "use": "@now/static" }
     ]
 }
