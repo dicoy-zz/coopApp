@@ -4,9 +4,9 @@
   "description": "Applicacion para cooperadoras",
   "main": "index.js",
   "dependencies": {
+    "mongodb-stitch-browser-sdk": "^4.3.1",
     "auth0-js": "^9.10.0",
     "express": "^4.16.4",
-    "mongodb": "^3.1.13",
     "react": "^16.6.3",
     "react-dom": "^16.8.3",
     "react-router-dom": "^4.3.1",
@@ -26,6 +26,8 @@
   },
   "scripts": {
     "start": "webpack-dev-server --open --hot --mode development",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "shiprod": "webpack --mode production && now && now alias",
+    "shitest": "webpack --mode production && now && now alias -A ./dev.now.json"
   }
 }

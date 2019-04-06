@@ -1,6 +1,6 @@
 {
   "name": "coopApp",
-  "alias": "lacoop.app",
+  "alias": "test.lacoop.app",
   "version": 2,
     "builds": [
         { "src": "*.js", "use": "@now/node" },
