@@ -1,4 +1,29 @@
 import React from 'react';
+import datos from './datos';
+import {
+    Stitch,
+    RemoteMongoClient,
+    UserApiKeyCredential} from 'mongodb-stitch-browser-sdk';
+
+const client = Stitch.initializeDefaultAppClient('coopapp-vddhj');
+
+const db = client.getServiceClient(RemoteMongoClient.factory, 'coopapp').db('coopapp');
+/*
+client.auth.loginWithCredential(new UserApiKeyCredential(datos.apiKey))
+  .then(user => db.collection('coopapp').insertOne({owner_id: client.auth.user.id, test:true}))
+  .then(result => console.log("insert ", result))
+  
+  .then(() => db.collection('coopapp').find({datos: true}, { limit: 100}).asArray())
+  .then(docs => {Object.keys(docs[0]).forEach(k => datos.agregar(k, docs[0][k]))})
+
+  .then(user => db.collection('coopapp').deleteMany({test: {$eq:true}}))
+  .then(result => console.log(result)) 
+*/
+  //.catch(err => {console.error(err)});  
+
+  window.db=db;
+  window.Stitch = Stitch;
+  window.datos = datos;
 
 const Gc = React.createContext();
 class Gcc extends React.Component {
@@ -22,7 +47,7 @@ class Gcc extends React.Component {
           state: this.state,
           cobrar: (fecha, numero) => {
             datos.agregarRecibo({...this.state, fecha, numero});
-            client.auth.loginWithCredential(new stitch.UserApiKeyCredential("pnty2vnbwU84txZ5sTITSrb9WAVHJJksqG2fq5IeYa5cxUzauNWLO62d1IIG4MSm"))
+            client.auth.loginWithCredential(new UserApiKeyCredential(datos.apiKey))
 .then(authedId => {
      console.log(authedId);
   })

@@ -9,11 +9,6 @@ import {
   IndexRoute,
   NavLink,
   hashHistory} from 'react-router-dom';
-import {
-    Stitch,
-    RemoteMongoClient,
-    AnonymousCredential,
-    UserApiKeyCredential} from 'mongodb-stitch-browser-sdk';
 
 import {Gcc, Gc} from './contexts';
 import NuevoRecibo from './secciones/NuevoRecibo';
@@ -22,34 +17,12 @@ import Editable from './componentes/Editable';
 import datos from './datos';
 import {uid} from './tools';
 
-const client = stitch.Stitch.initializeDefaultAppClient('coopapp-vddhj');
-
-const db = client.getServiceClient(stitch.RemoteMongoClient.factory, 'coopapp').db('coopapp');
-
 if (location.hash.slice(2).length == 64) {
   localStorage.setItem("apiKey", location.hash.slice(2));
   datos.apiKey = location.hash.slice(2);
   location.hash = "#";
   location.reload;
 }
-
-client.auth.loginWithCredential(new stitch.UserApiKeyCredential(datos.apiKey))
-/*
-  .then(user => db.collection('coopapp').insertOne({owner_id: client.auth.user.id, test:true}))
-  .then(result => console.log("insert ", result))
-  */
-  .then(() => db.collection('coopapp').find({datos: true}, { limit: 100}).asArray())
-  .then(docs => {Object.keys(docs[0]).forEach(k => datos.agregar(k, docs[0][k]))})
-  /*
-  .then(user => db.collection('coopapp').deleteMany({test: {$eq:true}}))
-  .then(result => console.log(result)) 
-*/
-  //.catch(err => {console.error(err)});  
-
-  window.client=client;
-  window.db=db;
-  window.stitch = stitch;
-  window.datos = datos;
 
 //elementos
 const Nav = props => {

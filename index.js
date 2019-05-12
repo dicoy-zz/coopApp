@@ -9,6 +9,7 @@ module.exports = (req, res) => {
   	'<!doctype html><html><head>'+
   	'<title>La Coop App</title>'+
   	'<link rel="stylesheet" href="external/tachyons.min.css">'+
+  	'<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.3.0/stitch.js"></script>'+
   	'</head><body>'+
   	'<div id="app"></div><script src="dist/main.js"></script>'+
   	'</body></html>');

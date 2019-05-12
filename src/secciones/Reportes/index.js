@@ -15,7 +15,7 @@ class Ticket extends React.Component {
   }
 }
 
-const NuevoRecibo = props => {
+const Reportes = props => {
 
   const componentRef = useRef();
   const now = new Date();
@@ -100,4 +100,4 @@ const NuevoRecibo = props => {
   );
 };
 
-export default NuevoRecibo; 
+export default Reportes; 
